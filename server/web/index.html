@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NebuFlow-IoT | Clinical Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <div class="logo">N</div>
+      <div>
+        <h1>NebuFlow<span>-IoT</span></h1>
+        <p>Smart breath-actuated nebulizer</p>
+      </div>
+    </div>
+    <nav>
+      <a href="#therapy">Live therapy</a>
+      <a href="#analytics">Analytics</a>
+      <a href="#device">Device health</a>
+      <a href="#patient">Patient</a>
+    </nav>
+    <div class="top-right">
+      <div id="clock" class="clock"></div>
+      <div id="conn" class="pill off">Device offline</div>
+    </div>
+  </div>
+</header>
+
+<!-- PATIENT BANNER -->
+<section class="patient-bar">
+  <div><span>Patient</span><b id="pb-name">Not entered</b></div>
+  <div><span>Patient ID</span><b id="pb-id">-</b></div>
+  <div><span>Age / Gender</span><b id="pb-ag">-</b></div>
+  <div><span>Weight</span><b id="pb-wt">-</b></div>
+  <div><span>Condition</span><b id="pb-cond">-</b></div>
+  <div><span>Medication</span><b id="pb-med">-</b></div>
+  <div><span>Prescribed dose</span><b id="pb-dose">-</b></div>
+  <div><span>Physician</span><b id="pb-doc">-</b></div>
+</section>
+
+<main>
+
+  <!-- ================= LIVE THERAPY ================= -->
+  <section id="therapy">
+    <div class="sec-head"><h2>Live therapy</h2><p>Real-time breath and valve status</p></div>
+
+    <div class="kpis">
+      <div class="kpi c-red">
+        <span class="lbl">Pressure drop</span>
+        <b><em id="k-pressure">0</em><small> Pa</small></b>
+        <span class="sub" id="k-pct">0% of threshold</span>
+      </div>
+      <div class="kpi c-black">
+        <span class="lbl">Trigger threshold</span>
+        <b><em id="k-thr">500</em><small> Pa</small></b>
+        <span class="sub" id="k-mode">Moderate mode</span>
+      </div>
+      <div class="kpi c-teal" id="kpi-valve">
+        <span class="lbl">Solenoid valve</span>
+        <b><em id="k-valve">CLOSED</em></b>
+        <span class="sub" id="k-status">Waiting for device</span>
+      </div>
+      <div class="kpi c-blue">
+        <span class="lbl">Breath rate</span>
+        <b><em id="k-bpm">0</em><small> /min</small></b>
+        <span class="sub">Inhalations per minute</span>
+      </div>
+      <div class="kpi c-green">
+        <span class="lbl">Medicine saved*</span>
+        <b><em id="k-saved">0</em><small> %</small></b>
+        <span class="sub">vs continuous nebulizer</span>
+      </div>
+      <div class="kpi c-amber">
+        <span class="lbl">Inhalations</span>
+        <b><em id="k-inh">0</em></b>
+        <span class="sub" id="k-weak">0 weak attempts</span>
+      </div>
+    </div>
+
+    <div class="row3">
+      <div class="card">
+        <h3 class="ch">Live waveform <i>last 60 s</i></h3>
+        <canvas id="chart" height="140"></canvas>
+        <div class="legend">
+          <span><i class="l-line"></i>Pressure drop</span>
+          <span><i class="l-thr"></i>Threshold</span>
+          <span><i class="l-valve"></i>Valve open</span>
+        </div>
+        <div class="meter-head"><span>Breath strength</span><b id="m-txt">0%</b></div>
+        <div class="meter"><div id="m-fill"></div><u></u></div>
+      </div>
+
+      <div class="card">
+        <h3 class="ch">Therapy controls</h3>
+        <p class="hint">Sensitivity (pressure-drop threshold)</p>
+        <div class="modes">
+          <button data-mode="light">Light<small>200 Pa</small></button>
+          <button data-mode="moderate">Moderate<small>500 Pa</small></button>
+          <button data-mode="heavy">Heavy<small>1000 Pa</small></button>
+        </div>
+        <label class="switch-row">
+          <input type="checkbox" id="enabled" checked>
+          <span>Therapy enabled <small>(off = valve forced closed)</small></span>
+        </label>
+        <div class="btn-row">
+          <button id="reset" class="secondary">Start new session</button>
+          <a class="btn secondary" href="/api/export.csv">Export CSV log</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="ch">Session progress</h3>
+        <div class="prog-top"><b id="pr-time">0:00</b><span id="pr-target">No target set</span></div>
+        <div class="bar"><div id="pr-fill"></div></div>
+        <p class="hint" id="pr-note">Enter a session target in patient details to track progress.</p>
+        <h4>Time in each mode</h4>
+        <div class="mode-bars">
+          <div><span>Light</span><div class="bar sm"><div id="mt-light"></div></div><b id="mt-light-t">0:00</b></div>
+          <div><span>Moderate</span><div class="bar sm"><div id="mt-moderate"></div></div><b id="mt-moderate-t">0:00</b></div>
+          <div><span>Heavy</span><div class="bar sm"><div id="mt-heavy"></div></div><b id="mt-heavy-t">0:00</b></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card gap">
+      <h3 class="ch">Clinical alerts</h3>
+      <ul id="alerts-clin" class="alerts"></ul>
+    </div>
+  </section>
+
+  <!-- ================= ANALYTICS ================= -->
+  <section id="analytics">
+    <div class="sec-head"><h2>Session analytics</h2><p>Breath performance and medicine delivery</p></div>
+
+    <div class="row2">
+      <div class="card top-red">
+        <h3 class="ch">Breath performance</h3>
+        <div class="stats">
+          <div><b id="s-peak">0</b><span>Peak drop (Pa)</span></div>
+          <div><b id="s-avgpeak">0</b><span>Avg peak (Pa)</span></div>
+          <div><b id="s-margin">0%</b><span>Peak vs threshold</span></div>
+          <div><b id="s-bpm">0.0</b><span>Breaths / min</span></div>
+          <div><b id="s-avg">0.0</b><span>Avg inhale (s)</span></div>
+          <div><b id="s-last">0.0</b><span>Last inhale (s)</span></div>
+          <div><b id="s-long">0.0</b><span>Longest inhale (s)</span></div>
+          <div><b id="s-weak">0</b><span>Weak attempts</span></div>
+        </div>
+      </div>
+
+      <div class="card top-blue">
+        <h3 class="ch">Medicine delivery</h3>
+        <div class="stats">
+          <div><b id="s-time">0:00</b><span>Session time</span></div>
+          <div><b id="s-inh">0</b><span>Total inhalations</span></div>
+          <div><b id="s-open">0</b><span>Valve open (s)</span></div>
+          <div><b id="s-duty">0%</b><span>Valve duty cycle</span></div>
+          <div><b id="s-saved">0%</b><span>Medicine saved*</span></div>
+          <div><b id="s-int">0</b><span>Avg interval (s)</span></div>
+        </div>
+        <p class="hint">*Estimate: a standard jet nebulizer releases medicine continuously; here it is released only while the valve is open.
+          A weak attempt is a breath that clearly rose but stayed below the threshold.</p>
+      </div>
+    </div>
+
+    <div class="card gap">
+      <h3 class="ch">Inhalation log <i>latest 12</i></h3>
+      <div class="tbl-wrap">
+        <table class="log">
+          <thead><tr><th>#</th><th>Time</th><th>Mode</th><th>Peak (Pa)</th><th>Duration (s)</th><th>Status</th></tr></thead>
+          <tbody id="log-body"><tr><td colspan="6" class="empty">No inhalations recorded yet</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= DEVICE HEALTH ================= -->
+  <section id="device">
+    <div class="sec-head"><h2>Device health</h2><p>ESP32 nebulizer controller status</p></div>
+
+    <div class="row3">
+      <div class="card">
+        <h3 class="ch">Overall health</h3>
+        <div class="health-top">
+          <div class="ring" id="h-ring"><div class="in"><b id="h-score">-</b><span>score</span></div></div>
+          <div>
+            <div id="h-label" class="big-badge na">Offline</div>
+            <p class="hint">Excellent &ge; 90 &middot; Good &ge; 70 &middot; Average &ge; 50 &middot; Poor &lt; 50</p>
+          </div>
+        </div>
+        <ul id="h-checks" class="checks"></ul>
+      </div>
+
+      <div class="card">
+        <h3 class="ch">Device information</h3>
+        <table class="kv">
+          <tr><td>Device ID</td><td id="d-id">-</td></tr>
+          <tr><td>Connection</td><td id="d-conn">-</td></tr>
+          <tr><td>Sensor temperature</td><td id="d-temp">-</td></tr>
+          <tr><td>Ambient pressure</td><td id="d-base">-</td></tr>
+          <tr><td>Uptime</td><td id="d-up">-</td></tr>
+          <tr><td>Restarts</td><td id="d-rs">-</td></tr>
+          <tr><td>Packets received</td><td id="d-pk">-</td></tr>
+          <tr><td>Last update</td><td id="d-last">-</td></tr>
+        </table>
+      </div>
+
+      <div class="card">
+        <h3 class="ch">Device alerts</h3>
+        <ul id="alerts-dev" class="alerts"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= PATIENT ================= -->
+  <section id="patient">
+    <div class="sec-head"><h2>Patient details</h2><p>Saved details appear in the banner and the CSV log</p></div>
+    <div class="card">
+      <form id="patientForm" autocomplete="off">
+        <div class="grid4">
+          <label>Patient ID <input name="id" required></label>
+          <label>Full name <input name="name" required></label>
+          <label>Age <input name="age" type="number" min="0" max="120"></label>
+          <label>Gender
+            <select name="gender"><option value="">-</option><option>Female</option><option>Male</option><option>Other</option></select>
+          </label>
+          <label>Weight (kg) <input name="weight" type="number" min="0" step="0.1"></label>
+          <label>Condition <input name="condition" placeholder="e.g. Asthma"></label>
+          <label>Physician <input name="doctor" placeholder="e.g. Dr. Kumar"></label>
+          <label>Session target (min) <input name="duration" type="number" min="0" step="1"></label>
+          <label>Medication <input name="medication" placeholder="e.g. Salbutamol"></label>
+          <label>Prescribed dose <input name="dose" placeholder="e.g. 2.5 mg / 2.5 ml"></label>
+          <label class="span2">Clinical notes <input name="notes"></label>
+        </div>
+        <button type="submit">Save patient</button>
+        <span id="saved" class="ok"></span>
+      </form>
+    </div>
+  </section>
+</main>
+
+<footer>NebuFlow-IoT prototype for research and education &mdash; not a certified medical device.</footer>
+<script src="app.js"></script>
+</body>
+</html>

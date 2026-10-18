@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "NebuFlow Server (real hardware)",
+      "request": "launch",
+      "mainClass": "nebuflow.Main",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "java",
+      "name": "NebuFlow Server (DEMO - no hardware)",
+      "request": "launch",
+      "mainClass": "nebuflow.Main",
+      "args": "--demo",
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}
